@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Estonia Bonus ROI Wizard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0b111d; --panel:#11192b; --panel2:#0d1424; --stroke:rgba(255,255,255,.08);
+    --text:#eef2ff; --muted:#9aa6c4;
+    --accent:#ff8a00; --accent2:#ffbd3a;       /* New */
+    --accentG:#19c37d; --accentG2:#12a168;     /* Existing */
+    --good:#10b981; --warn:#f59e0b; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:1040px;margin:36px auto;padding:0 16px}
+  .card{background:var(--panel);border:1px solid var(--stroke);border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.30)}
+  .header{padding:26px;text-align:center}
+  .badge{display:inline-block;padding:8px 14px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#0b0f18;font-weight:900}
+  .badge.exist{background:linear-gradient(90deg,var(--accentG),var(--accentG2))}
+  h1{margin:12px 0 0;font-size:2rem;font-weight:900;letter-spacing:-.02em;
+     background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  h1.exist{background:linear-gradient(90deg,var(--accentG),var(--accentG2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);margin-top:6px}
+
+  .wizard{margin-top:18px}
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px}
+  .dot{height:6px;border-radius:6px;background:#1a2339}
+  .dot.active{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .dot.exist.active{background:linear-gradient(90deg,var(--accentG),var(--accentG2))}
+  .panel{padding:22px 18px}
+  .grid{display:grid;gap:14px}
+  @media (min-width:900px){ .grid-2{grid-template-columns:1fr 1fr} }
+
+  label{display:flex;justify-content:space-between;align-items:center;font-weight:800;margin:8px 0}
+  .hint{color:var(--muted);font-weight:600;font-size:.86rem}
+  input, select{
+    width:100%;padding:14px 12px;background:var(--panel2);color:var(--text);
+    border:1px solid var(--stroke);border-radius:12px;font-size:1rem;outline:0;
+  }
+  input:focus, select:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(255,138,0,.18)}
+  .exist input:focus, .exist select:focus{border-color:var(--accentG);box-shadow:0 0 0 4px rgba(25,195,125,.18)}
+
+  .section{background:var(--panel);border:1px solid var(--stroke);border-radius:16px;padding:16px}
+  .section h3{margin:0 0 8px;font-size:1rem;font-weight:900}
+
+  .btn-row{display:flex;gap:10px;justify-content:space-between;margin-top:14px}
+  .btn{
+    cursor:pointer;border:0;border-radius:12px;padding:12px 16px;font-weight:900;letter-spacing:.1px;
+    color:#0b0f18;background:linear-gradient(90deg,var(--accent),var(--accent2));
+    box-shadow:0 12px 28px rgba(255,138,0,.25);
+  }
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .btn.secondary{background:#1b243b;color:#cfe0ff;box-shadow:none;border:1px solid var(--stroke)}
+  .exist .btn{background:linear-gradient(90deg,var(--accentG),var(--accentG2));box-shadow:0 12px 28px rgba(25,195,125,.22)}
+
+  .kpis{display:grid;gap:12px}
+  @media (min-width:900px){ .kpis-4{grid-template-columns:repeat(4,1fr)} .kpis-3{grid-template-columns:repeat(3,1fr)} }
+  .kpi{background:var(--panel2);border:1px solid var(--stroke);border-radius:14px;padding:14px}
+  .lbl{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.6px}
+  .val{margin-top:8px;font-weight:900;font-size:1.35rem}
+  .mono{font-variant-numeric:tabular-nums}
+
+  .roi{box-shadow:0 0 0 1px rgba(255,255,255,.07)}
+  .roi.pos{box-shadow:0 0 0 1px rgba(16,185,129,.28),0 18px 36px rgba(16,185,129,.22)}
+  .roi.mid{box-shadow:0 0 0 1px rgba(245,158,11,.28),0 18px 36px rgba(245,158,11,.20)}
+  .roi.neg{box-shadow:0 0 0 1px rgba(239,68,68,.30),0 18px 36px rgba(239,68,68,.22)}
+  .note{margin-top:8px;color:var(--muted);font-size:.9rem}
+
+  .pill{display:inline-block;padding:6px 10px;border-radius:999px;border:1px solid var(--stroke);background:#1b243b;color:#dfe6ff;font-weight:700;margin-left:8px}
+  .row{display:flex;gap:10px;align-items:center}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card header" id="hdr">
+      <span id="badge" class="badge">Bonus ROI</span>
+      <h1 id="title">Estonia Bonus ROI Wizard</h1>
+      <div class="sub">Players → bonus template → wagering → costs → ROI. Currency fixed to &euro;.</div>
+    </div>
+
+    <div class="wizard card" id="wiz">
+      <div class="steps">
+        <div id="dot1" class="dot active"></div>
+        <div id="dot2" class="dot"></div>
+        <div id="dot3" class="dot"></div>
+        <div id="dot4" class="dot"></div>
+      </div>
+
+      <!-- STEP 1: Campaign type -->
+      <div id="step1" class="panel">
+        <div class="grid grid-2">
+          <div class="section">
+            <h3>Step 1 — Campaign type</h3>
+            <label>Type
+              <select id="type">
+                <option value="new">New customers (orange)</option>
+                <option value="existing">Existing customers (green)</option>
+              </select>
+            </label>
+            <div class="note">Existing customers typically yield less from wagering. A conservative modifier is applied automatically.</div>
+          </div>
+          <div class="section">
+            <h3>Defaults</h3>
+            <label>NGR % of turnover (EE avg)</label>
+            <input id="ngrPct" type="number" inputmode="decimal" min="0.1" max="10" step="0.1" value="3.4" />
+            <div class="note">You can adjust this later in the summary for sensitivity checks.</div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn secondary" disabled>Back</button>
+          <button id="next1" class="btn">Next</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Bonus Model -->
+      <div id="step2" class="panel" style="display:none">
+        <div class="grid grid-2">
+          <div class="section">
+            <h3>Step 2 — Bonus model</h3>
+            <label>Template
+              <select id="bonusTpl">
+                <option value="100_50">100% up to 50&euro;</option>
+                <option value="200_100">200% up to 100&euro;</option>
+                <option value="300_200">300% up to 200&euro;</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+
+            <div id="customBox" style="display:none">
+              <label>Custom bonus %</label>
+              <input id="customPct" type="number" inputmode="numeric" min="0" max="500" step="1" value="150" />
+              <label>Custom cap amount (&euro;)</label>
+              <input id="customCap" type="number" inputmode="decimal" min="0" step="1" value="75" />
+            </div>
+
+            <label style="margin-top:8px">Wagering requirement (×)</label>
+            <input id="wagerX" type="number" inputmode="numeric" min="0" max="50" step="1" value="20" />
+            <div class="note">Wagering multiplies the bonus amount and drives potential turnover.</div>
+          </div>
+
+          <div class="section">
+            <h3>How bonus is applied</h3>
+            <div class="note">Bonus per player is calculated on their deposit, but capped by the template. Example:
+              “200% up to &euro;100” means a &euro;100 deposit gives &euro;200 bonus; &euro;150 deposit is capped at &euro;100 bonus.</div>
+            <div class="kpis" style="margin-top:10px">
+              <div class="kpi">
+                <div class="lbl">Current selection</div>
+                <div id="tplPreview" class="val mono">100% up to 50€ • Wager 20×</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="back2" class="btn secondary">Back</button>
+          <button id="next2" class="btn">Next</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Players & Costs -->
+      <div id="step3" class="panel" style="display:none">
+        <div class="grid grid-2">
+          <div class="section">
+            <h3>Step 3 — Participants & costs</h3>
+            <label>Players</label>
+            <input id="players" type="number" inputmode="numeric" min="1" step="1" value="250" />
+
+            <label>Average deposit (&euro;)</label>
+            <input id="deposit" type="number" inputmode="decimal" min="1" step="1" value="35" />
+
+            <label>Campaign ad spend (&euro;)</label>
+            <input id="spend" type="number" inputmode="decimal" min="0" step="1" value="6000" />
+          </div>
+
+          <div class="section">
+            <h3>Live preview</h3>
+            <div class="kpis kpis-4">
+              <div class="kpi">
+                <div class="lbl">Bonus / player</div>
+                <div id="pvBonusPer" class="val mono">—</div>
+              </div>
+              <div class="kpi">
+                <div class="lbl">Wager turnover / player</div>
+                <div id="pvWagPer" class="val mono">—</div>
+              </div>
+              <div class="kpi">
+                <div class="lbl">NGR / player</div>
+                <div id="pvNgrPer" class="val mono">—</div>
+              </div>
+              <div class="kpi">
+                <div class="lbl">CPA</div>
+                <div id="pvCpa" class="val mono">—</div>
+              </div>
+            </div>
+            <div class="note" id="pvNote">Adjust players/deposit/spend to see the impact.</div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="back3" class="btn secondary">Back</button>
+          <button id="next3" class="btn">Next</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Summary -->
+      <div id="step4" class="panel" style="display:none">
+        <div class="grid grid-2">
+          <div class="section">
+            <h3>Step 4 — Summary & ROI</h3>
+            <div class="kpis kpis-4">
+              <div class="kpi">
+                <div class="lbl">Total bonus cost</div>
+                <div id="outBonusTot" class="val mono">—</div>
+              </div>
+              <div class="kpi">
+                <div class="lbl">Total NGR</div>
+                <div id="outNgrTot" class="val mono">—</div>
+              </div>
+              <div class="kpi">
+                <div class="lbl">Total cost</div>
+                <div id="outCostTot" class="val mono">—</div>
+              </div>
+              <div id="roiCard" class="kpi roi">
+                <div class="lbl">ROI</div>
+                <div id="outRoi" class="val mono">—</div>
+              </div>
+            </div>
+
+            <div class="kpis" style="margin-top:12px">
+              <div class="kpi">
+                <div class="lbl">Assumptions</div>
+                <div id="assump" class="val mono" style="font-size:1rem">—</div>
+              </div>
+            </div>
+            <div class="note" id="outHint">—</div>
+          </div>
+
+          <div class="section">
+            <h3>Recalculate (optional)</h3>
+            <label>NGR % of turnover</label>
+            <input id="recalcNgrPct" type="number" inputmode="decimal" min="0.1" max="10" step="0.1" value="3.4" />
+            <div class="btn-row" style="justify-content:flex-start;margin-top:10px">
+              <button id="recalc" class="btn">Recalculate</button>
+            </div>
+            <div class="note">Existing customer mode applies a conservative yield modifier.</div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="back4" class="btn secondary">Back</button>
+          <button id="finish" class="btn">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const fmtE = n => (isFinite(n) ? Number(n).toLocaleString('en-EE',{maximumFractionDigits:0}) + '&euro;' : '—');
+  const fmtP = n => (isFinite(n) ? (n>=0?'+':'') + n.toFixed(1) + '%' : '—');
+
+  const state = {
+    mode: 'new',               // 'new' | 'existing'
+    ngrPct: 3.4,               // base EE NGR%
+    ngrMod: 1.0,               // 1.0 new, 0.7 existing (conservative)
+    tpl: '100_50',             // percent_cap
+    customPct: 150,
+    customCap: 75,
+    wagerX: 20,
+
+    players: 250,
+    deposit: 35,
+    spend: 6000
+  };
+
+  function setTheme(){
+    const isExist = (state.mode === 'existing');
+    $('badge').classList.toggle('exist', isExist);
+    $('title').className = isExist ? 'exist' : '';
+    $('wiz').classList.toggle('exist', isExist);
+    [1,2,3,4].forEach(n => $('dot'+n).classList.toggle('exist', isExist));
+  }
+
+  function goto(step){
+    [1,2,3,4].forEach(n=>{
+      $('step'+n).style.display = (n===step) ? 'block' : 'none';
+      $('dot'+n).classList.toggle('active', n<=step);
+    });
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function readNum(id, def=0){
+    const v = parseFloat(($(id).value||'').replace(',','.'));
+    return isFinite(v) ? v : def;
+  }
+
+  function currentTemplate(){
+    if(state.tpl==='custom'){
+      return { pct: clampNum(readNum('customPct', state.customPct), 0, 500),
+               cap: clampNum(readNum('customCap', state.customCap), 0, 1e9) };
+    }
+    const parts = state.tpl.split('_'); // percent_cap
+    return { pct: parseFloat(parts[0]||'0'), cap: parseFloat(parts[1]||'0') };
+  }
+
+  function calcCore(overrideNgrPct=null){
+    const tpl = currentTemplate();
+    const players = clampInt(readNum('players', state.players), 0, 1e9);
+    const deposit = clampNum(readNum('deposit', state.deposit), 0, 1e9);
+    const spend   = clampNum(readNum('spend', state.spend), 0, 1e12);
+    const wagerX  = clampNum(readNum('wagerX', state.wagerX), 0, 50);
+
+    const bonusPer = Math.min(deposit * (tpl.pct/100), tpl.cap);
+    const wagPer   = bonusPer * wagerX;
+    const ngrPct   = (overrideNgrPct!==null ? overrideNgrPct : state.ngrPct) * state.ngrMod;
+    const ngrPer   = wagPer * (ngrPct/100);
+
+    const bonusTot = bonusPer * players;
+    const ngrTot   = ngrPer * players;
+    const costTot  = bonusTot + spend;
+
+    const roi      = costTot>0 ? ((ngrTot - costTot)/costTot)*100 : 0;
+    const cpa      = players>0 ? costTot/players : 0;
+
+    return {tpl,players,deposit,spend,wagerX,bonusPer,wagPer,ngrPct,ngrPer,bonusTot,ngrTot,costTot,roi,cpa};
+  }
+
+  function updateTplPreview(){
+    const tpl = currentTemplate();
+    $('tplPreview').innerHTML = `${Math.round(tpl.pct)}% up to ${Math.round(tpl.cap)}€ • Wager ${Math.round(state.wagerX)}×`;
+  }
+
+  function livePreviewStep3(){
+    const m = calcCore();
+    $('pvBonusPer').innerHTML = fmtE(m.bonusPer);
+    $('pvWagPer').innerHTML   = fmtE(m.wagPer);
+    $('pvNgrPer').innerHTML   = fmtE(m.ngrPer);
+    $('pvCpa').innerHTML      = fmtE(m.cpa);
+    $('pvNote').innerHTML = `Template: ${Math.round(m.tpl.pct)}% up to ${Math.round(m.tpl.cap)}€ • Wager ${Math.round(m.wagerX)}× • NGR ${(m.ngrPct).toFixed(1)}%`;
+  }
+
+  function paintSummary(overrideNgrPct=null){
+    const m = calcCore(overrideNgrPct);
+    $('outBonusTot').innerHTML = fmtE(m.bonusTot);
+    $('outNgrTot').innerHTML   = fmtE(m.ngrTot);
+    $('outCostTot').innerHTML  = fmtE(m.costTot);
+
+    const roiCard = $('roiCard');
+    roiCard.className = 'kpi roi';
+    $('outRoi').innerHTML = fmtP(m.roi);
+    if (m.roi >= 0) roiCard.classList.add('pos');
+    else if (m.roi >= -30) roiCard.classList.add('mid');
+    else roiCard.classList.add('neg');
+
+    $('assump').innerHTML = `${Math.round(m.tpl.pct)}% up to ${Math.round(m.tpl.cap)}€ • Wager ${Math.round(m.wagerX)}× • NGR ${(m.ngrPct).toFixed(1)}% • Players ${m.players.toLocaleString('en-EE')} • Deposit ${Math.round(m.deposit)}€ • Spend ${Math.round(m.spend)}€`;
+    $('outHint').innerHTML = (m.roi >= 0)
+      ? 'Profitable: estimated NGR exceeds total cost.'
+      : 'Loss-making at these settings. Reduce bonus %, increase wagering, or lower ad spend.';
+  }
+
+  // Clamp helpers
+  function clampNum(v,min,max){ return Math.max(min, Math.min(max, v)); }
+  function clampInt(v,min,max){ v = Math.floor(v); return Math.max(min, Math.min(max, isFinite(v)?v:0)); }
+
+  // Events
+  $('type').addEventListener('change', e => {
+    state.mode = (e.target.value==='existing') ? 'existing' : 'new';
+    state.ngrMod = (state.mode==='existing') ? 0.7 : 1.0; // conservative existing modifier
+    setTheme();
+  });
+
+  $('ngrPct').addEventListener('input', ()=>{
+    state.ngrPct = clampNum(readNum('ngrPct', state.ngrPct), 0.1, 10);
+  });
+
+  $('bonusTpl').addEventListener('change', e=>{
+    state.tpl = e.target.value;
+    $('customBox').style.display = (state.tpl==='custom') ? 'block' : 'none';
+    updateTplPreview();
+  });
+  ['customPct','customCap','wagerX'].forEach(id=>{
+    $(id).addEventListener('input', ()=>{
+      state.customPct = readNum('customPct', state.customPct);
+      state.customCap = readNum('customCap', state.customCap);
+      state.wagerX    = readNum('wagerX', state.wagerX);
+      updateTplPreview();
+    });
+  });
+
+  ['players','deposit','spend'].forEach(id=> $(id).addEventListener('input', livePreviewStep3));
+
+  // Navigation
+  $('next1').addEventListener('click', ()=>{ goto(2); updateTplPreview(); });
+  $('back2').addEventListener('click', ()=> goto(1));
+  $('next2').addEventListener('click', ()=>{ goto(3); livePreviewStep3(); });
+  $('back3').addEventListener('click', ()=> goto(2));
+  $('next3').addEventListener('click', ()=>{ goto(4); $('recalcNgrPct').value = state.ngrPct; paintSummary(); });
+  $('back4').addEventListener('click', ()=> goto(3));
+  $('finish').addEventListener('click', ()=> window.scrollTo({top:0,behavior:'smooth'}));
+
+  $('recalc').addEventListener('click', ()=>{
+    const np = clampNum(readNum('recalcNgrPct', state.ngrPct), 0.1, 10);
+    $('recalcNgrPct').value = np;
+    paintSummary(np);
+  });
+
+  // Init
+  setTheme();
+  goto(1);
+})();
+</script>
+</body>
+</html>
